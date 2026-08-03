@@ -2,10 +2,29 @@
 
 A validation spike on **He et al. 2015, *Deep Residual Learning for Image Recognition*** ([arXiv:1512.03385](https://arxiv.org/abs/1512.03385)).
 
-Two experiments, run on CPU:
+Two experiments were designed. One ran.
 
-1. **Mechanism test** — can SGD find an identity mapping through a deep plain stack?
-2. **Degradation replication** — do deeper *plain* CIFAR-10 nets really train worse, and does the shortcut fix it?
+1. **Mechanism test** — can SGD find an identity mapping through a deep plain stack? **Ran.**
+2. **Degradation replication** — do deeper *plain* CIFAR-10 nets really train worse? **Not run**, see the last section for why.
+
+## Findings
+
+![identity test](results/identity_test.png)
+
+1. **A plain stack cannot learn `f(x) = x` as it deepens, even though the solution is exactly
+   representable.** By depth 24 it scores what you get from ignoring the input and predicting its mean.
+   The capacity is provably there. SGD does not find it. This is the premise ResNet was built on.
+2. **A shortcut is not sufficient by itself.** With ReLU applied *after* the addition, the residual stack
+   degrades almost as badly by depth 32.
+3. **Moving the activation before the weights is worth 13.8x at depth 32.** A clean identity path, nothing
+   applied on top of the addition. This is the ordering from
+   [He et al. 2016, *Identity Mappings in Deep Residual Networks*](https://arxiv.org/abs/1603.05027).
+4. **Plain gradients explode rather than vanish** — 670 against pre-activation's 2.7 at the first layer at
+   depth 48. So the failure is conditioning, not starved signal, which is consistent with the 2015 paper
+   explicitly ruling out vanishing gradients as the cause of degradation.
+
+Scope, up front: a 64-dimensional MLP learning the identity function, on CPU. No CIFAR-10 result is
+claimed anywhere in this repo. Full detail and limits in [Results](#results).
 
 ## What the paper claims
 
@@ -71,12 +90,19 @@ uv run python plots.py cifar
 ## Layout
 
 ```
-models.py          plain + residual blocks (CIFAR nets and the identity-test MLPs)
-identity_test.py   mechanism sweep
-train.py           CIFAR-10 training, one model per invocation
+models.py          plain, post-activation residual and pre-activation residual blocks
+                   (both the CIFAR nets and the identity-test MLPs)
+identity_test.py   the mechanism sweep. checkpoints after every depth
+train.py           CIFAR-10 training, one model per invocation. checkpoints after every epoch
+diagnose.py        the two hypotheses that explained why the first sweep was invalid
+extra_figures.py   activation growth, gradient reach, per-seed spread
 plots.py           charts from the JSON logs
+keepawake.py       holds a wake lock so a long run survives Modern Standby
 results/           JSON logs + PNG charts
 ```
+
+Every number in this README comes from a JSON file in `results/`, and every chart is generated from those
+files by `plots.py` or `extra_figures.py`. Nothing is hand-entered.
 
 ## Results
 
@@ -160,8 +186,10 @@ Plain activations stay flat. Both residual variants compound, because each block
 sum. This is the measured cause of the depth-24 divergence, and it also shows the shortcut is not free:
 it needs normalisation to behave like a pass-through rather than an amplifier.
 
-**2. Gradient magnitude at the first layer** (`results/gradient_reach.png`) — one backward pass at
-init, normalisation ON. **Read this one carefully: bigger is not better, flat with depth is.**
+**2. Gradient magnitude at the first layer** — one backward pass at init, normalisation ON.
+**Read this one carefully: bigger is not better, flat with depth is.**
+
+![gradient reach](results/gradient_reach.png)
 
 | depth | plain | residual | pre-activation |
 |---:|---:|---:|---:|
