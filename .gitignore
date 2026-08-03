@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+
+# CIFAR-10 archive and extracted batches, ~170MB, re-downloadable
+data/
+
+# results/ is deliberately NOT ignored. The JSON logs and PNG charts are the evidence.
