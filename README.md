@@ -179,5 +179,26 @@ the reflex answer, and this measurement contradicts it in our setting.
 **3. Every seed shown** (`results/seed_spread.png`) — the headline means with all 3 individual seeds
 plotted, so the separation between the three families is visibly not one lucky run.
 
-### Degradation (CIFAR-10)
-_pending — timing probe running to size the schedule._
+### Degradation (CIFAR-10) — not run
+
+**This experiment was written but never executed, and no CIFAR-10 result is claimed anywhere in this
+repo.** `train.py` is complete and runnable if you have the hardware.
+
+Why it was cut:
+
+- **CPU only.** No NVIDIA GPU on this machine. Four models (plain-20, plain-56, ResNet-20, ResNet-56)
+  at a truncated 30 epochs was estimated at 8 to 16 hours of wall time, against the paper's ~182 epochs
+  which would have been well over a day.
+- **A truncated schedule is not comparable to the paper anyway.** Reproducing the ordering at 30 epochs
+  would have demonstrated something already not in doubt, at a schedule that makes the numbers
+  non-comparable to the published ones.
+- **The synthetic task answered the same question more cheaply.** The identity-mapping experiment above
+  isolates the premise (identity is representable, SGD does not find it) in a setting where
+  representability is provable rather than argued, which the CIFAR run cannot do.
+
+So the honest summary of this repo: it validates the *premise* of the 2015 paper and the *mechanism* of the
+2016 follow-up on a synthetic task. It does not reproduce the CIFAR-10 experiments.
+
+To run it yourself, the four commands are in the Running it section above. `train.py` writes its JSON log
+after every epoch, so a partial run still leaves usable data, and it holds a wake lock (`keepawake.py`) so
+the machine does not sleep mid-run.
